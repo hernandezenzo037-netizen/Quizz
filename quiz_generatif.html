@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Culture Générale Génératif</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{
+  font-family: system-ui, sans-serif;
+  background: linear-gradient(135deg,#667eea,#764ba2);
+  min-height:100vh;
+  margin:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.card{
+  background:#fff;
+  padding:24px;
+  border-radius:18px;
+  max-width:460px;
+  width:100%;
+  box-shadow:0 20px 40px rgba(0,0,0,.25);
+}
+h1{text-align:center;margin-top:0}
+select,button{
+  width:100%;
+  padding:10px;
+  margin-top:12px;
+  font-size:16px;
+}
+.question{font-weight:600;margin-top:16px}
+.answers button{text-align:left;margin-top:8px}
+.top{
+  display:flex;
+  justify-content:space-between;
+  font-size:14px;
+  margin-top:10px;
+}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>🧠 Quiz Culture Générale</h1>
+
+<div id="setup">
+<select id="difficulty">
+  <option value="easy">Facile</option>
+  <option value="medium">Moyen</option>
+  <option value="hard">Difficile</option>
+</select>
+<select id="category">
+  <option value="9">Culture générale</option>
+  <option value="23">Histoire</option>
+  <option value="17">Science</option>
+  <option value="22">Géographie</option>
+</select>
+<button onclick="start()">Commencer</button>
+</div>
+
+<div id="quiz" style="display:none">
+<div class="top">
+  <div id="timer">⏱️ 20</div>
+  <div id="score">Score: 0</div>
+</div>
+<div class="question" id="question"></div>
+<div class="answers" id="answers"></div>
+</div>
+
+<div id="end" style="display:none;text-align:center"></div>
+</div>
+
+<script>
+let score=0,time=20,timer,qIndex=0,questions=[];
+
+async function start(){
+  score=0;qIndex=0;
+  document.getElementById("setup").style.display="none";
+  document.getElementById("quiz").style.display="block";
+  document.getElementById("score").textContent="Score: 0";
+
+  const diff=document.getElementById("difficulty").value;
+  const cat=document.getElementById("category").value;
+
+  const res=await fetch(
+    `https://opentdb.com/api.php?amount=10&difficulty=${diff}&category=${cat}&type=multiple`
+  );
+  const data=await res.json();
+  questions=data.results;
+  showQuestion();
+}
+
+function showQuestion(){
+  resetTimer();
+  const q=questions[qIndex];
+  document.getElementById("question").innerHTML=q.question;
+  const answers=[...q.incorrect_answers,q.correct_answer]
+    .sort(()=>Math.random()-.5);
+
+  const div=document.getElementById("answers");
+  div.innerHTML="";
+  answers.forEach(a=>{
+    const b=document.createElement("button");
+    b.innerHTML=a;
+    b.onclick=()=>answer(a===q.correct_answer);
+    div.appendChild(b);
+  });
+}
+
+function answer(correct){
+  if(correct) score++;
+  document.getElementById("score").textContent="Score: "+score;
+  next();
+}
+
+function next(){
+  clearInterval(timer);
+  qIndex++;
+  if(qIndex<questions.length) showQuestion();
+  else end();
+}
+
+function resetTimer(){
+  time=20;
+  document.getElementById("timer").textContent="⏱️ "+time;
+  clearInterval(timer);
+  timer=setInterval(()=>{
+    time--;
+    document.getElementById("timer").textContent="⏱️ "+time;
+    if(time===0) next();
+  },1000);
+}
+
+function end(){
+  document.getElementById("quiz").style.display="none";
+  const e=document.getElementById("end");
+  e.style.display="block";
+  e.innerHTML=`<h2>🎉 Terminé !</h2><p>Score final : <b>${score}/10</b></p>
+  <button onclick="location.reload()">Rejouer</button>`;
+}
+</script>
+</body>
+</html>
